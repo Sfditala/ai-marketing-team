@@ -1,0 +1,1434 @@
+{
+  "name": "AI Marketing Team (Demo)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "573078aa-3e0e-42c5-8a3b-9a670e2bee05",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        -112
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Connect your telegramApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Ben Al-Sabah - Knowledge Base",
+        "formDescription": "ارفع ملفات المعرفة (.md أو .txt): دليل الهوية، المنتجات، الأسعار، العروض، نبرة الكتابة، قواعد المنصات، الكلمات الممنوعة.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Knowledge Files",
+              "fieldType": "file",
+              "fieldName": "knowledge_files",
+              "acceptFileTypes": ".md,.txt",
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "رفع",
+          "path": "ben-al-sabah-knowledge",
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "تم رفع الملفات وإضافتها لقاعدة المعرفة ✅"
+            }
+          }
+        }
+      },
+      "id": "c7ab90f0-e69c-4d94-ac17-2005c6527c4f",
+      "name": "Upload Knowledge Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "ben-al-sabah",
+          "mode": "list",
+          "cachedResultName": "ben-al-sabah"
+        },
+        "options": {
+          "clearNamespace": false,
+          "pineconeNamespace": "ben-al-sabah"
+        }
+      },
+      "id": "fd213841-557f-4087-82af-9cccd19129c3",
+      "name": "Pinecone - Insert",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        208
+      ],
+      "credentials": {
+        "pineconeApi": {
+          "id": "",
+          "name": "Connect your pineconeApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "653b8528-3049-47e8-92ad-042548589004",
+      "name": "Gemini Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        240,
+        448
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "",
+          "name": "Connect your googlePalmApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "loader": "textLoader",
+        "options": {}
+      },
+      "id": "808040e3-0f4e-49f8-a661-55e28c72c4f6",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        368,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "d88e9d17-38dc-4b7f-9b9b-07eab922e88e",
+                    "leftValue": "={{ $json.message.text }}",
+                    "operator": {
+                      "operation": "notEmpty",
+                      "singleValue": true,
+                      "type": "string"
+                    },
+                    "rightValue": ""
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 4
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "494f4ac8-55e8-44f3-8372-5fc31c81a2c5",
+                    "leftValue": "={{ $json.message.voice.file_id }}",
+                    "operator": {
+                      "operation": "notEmpty",
+                      "singleValue": true,
+                      "type": "string"
+                    },
+                    "rightValue": ""
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 4
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "voice"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "other"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.5,
+      "position": [
+        448,
+        -240
+      ],
+      "id": "64e58da3-f134-4247-b8cc-0df0551f4fef",
+      "name": "Input Type"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "4e642d46-c1c3-4fe0-87ac-3a1de70a82ed",
+              "leftValue": "={{ String($json.message?.from?.id ?? $json.callback_query?.from?.id ?? '') }}",
+              "rightValue": "YOUR_TELEGRAM_USER_ID",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        224,
+        -112
+      ],
+      "id": "fbe16579-088f-4e0f-8d85-a4ba988f81de",
+      "name": "Allowlist"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message?.chat?.id ?? $('Telegram Trigger').item.json.callback_query?.message?.chat?.id }}",
+        "text": "عذراً ، هذا البوت خاص .. لا يمكنني اجابتك",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        320,
+        32
+      ],
+      "id": "d9f610f4-a208-4916-a2f4-8ae507bad47c",
+      "name": "Send Refusal",
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Connect your telegramApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message?.chat?.id }}",
+        "text": "بقدر أفهم نص أو فويس بس 🙏",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "6d20da9f-831e-46d6-988f-0e5860315f9b",
+      "name": "Reply Unsupported",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        -16
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Connect your telegramApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dea98b22-80a7-4ecc-9156-659d7f918099",
+              "name": "chat_id",
+              "type": "string",
+              "value": "={{ String($('Input Type').item.json.message.chat.id) }}"
+            },
+            {
+              "id": "8b82c760-7df1-4655-99d3-35b27975ad8a",
+              "name": "user_text",
+              "type": "string",
+              "value": "={{ $('Input Type').item.json.message.text ?? $json.text }}"
+            },
+            {
+              "id": "f5797045-8ee2-4b53-b71c-f6aa6b1f74bd",
+              "name": "user_name",
+              "type": "string",
+              "value": "={{ $('Input Type').item.json.message.from.first_name }}"
+            },
+            {
+              "id": "cf8a6220-adbe-4ec0-9bd5-2e4b16c301b2",
+              "name": "is_voice",
+              "type": "boolean",
+              "value": "={{ !!$('Input Type').item.json.message.voice }}"
+            },
+            {
+              "id": "lang0001",
+              "name": "reply_language",
+              "type": "string",
+              "value": "={{ $('Input Type').item.json.message.voice ? (String($json.language_code || '').toLowerCase().startsWith('en') ? 'en' : 'ar') : (/[؀-ۿ]/.test($('Input Type').item.json.message.text || '') ? 'ar' : 'en') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1120,
+        -432
+      ],
+      "id": "53c9b5c5-52d3-4ff5-8359-163d86ded937",
+      "name": "Prepare Message"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Search the Ben Al-Sabah café knowledge base: brand guide, tone of voice, products and prices, current offers with end dates, writing rules for Instagram/Facebook/X/WhatsApp, and forbidden words. Use a short, specific search query (e.g. 'Spanish Latte price', 'Instagram rules', 'current offers').",
+        "pineconeIndex": {
+          "__rl": true,
+          "cachedResultName": "ben-al-sabah",
+          "mode": "list",
+          "value": "ben-al-sabah"
+        },
+        "topK": 5,
+        "options": {
+          "pineconeNamespace": "ben-al-sabah"
+        }
+      },
+      "id": "8432c759-7e47-453d-b2b2-c5897e20edc3",
+      "name": "cafe_knowledge",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        1776,
+        224
+      ],
+      "credentials": {
+        "pineconeApi": {
+          "id": "",
+          "name": "Connect your pineconeApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "a05f1bf9-8382-4db5-97d0-f6ff9588e490",
+      "name": "Gemini Embeddings - Search",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1856,
+        432
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "",
+          "name": "Connect your googlePalmApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.reply_language === 'en' ? '[Reply language: ENGLISH. Write your whole answer in English.]' : '[Reply language: ARABIC, Jordanian/Palestinian Levantine dialect (هاد، هلأ، بدك، كتير). Never use Lebanese-only words like هيدا / هيدي / شو بدّك ياه.]' }}\n{{ $json.is_voice ? '[Voice note, auto-transcribed. Product names may be misheard, e.g. \"Spanish Latino\" = Spanish Latte.]' : '' }}\n{{ $json.user_text }}",
+        "options": {
+          "systemMessage": "=You are the Orchestrator of the Ben Al-Sabah (بن الصباح) café AI marketing team on Telegram.\nYou manage the whole system: you talk with the café owner, plan the work, delegate it to specialist agents, review their results and deliver one final answer. You never do the specialist work yourself.\n\nNow: {{ $now.toFormat('cccc yyyy-MM-dd HH:mm') }} (Asia/Amman)\nOwner's name: {{ $('Prepare Message').item.json.user_name }}\n\n## Your team (tools)\n- content_agent: writes and edits marketing posts and captions for Instagram, Facebook, X and WhatsApp, and answers questions about café products, prices and offers (it searches the café knowledge base).\n- calendar_agent: shows the posting calendar (Google Sheets), suggests the best times, checks conflicts and schedules posts. Saving is protected by an approve/decline button that the system sends to the owner automatically.\n- analyst_agent: analyses the performance of past posts (reach, clicks, likes, orders) using real data only.\nIf the tool you need is NOT in your tool list, do not do the task yourself. Reply: \"هالميزة لسا قيد التجهيز 🛠️\" and say what you can do now.\n\n## Your process for EVERY message\n\n1. RECEIVE the owner's message.\n\n2. UNDERSTAND the goal. Use the conversation history: \"خليه أقصر\" or \"جدوله\" refer to the last post; a time like \"السبت 11\" right after calendar_agent proposed slots means the owner picked that slot.\n\n3. ANALYSE and classify the request into ONE route:\n   - content: write / edit / shorten a post, or a question about a product, price or offer.\n   - schedule: view the calendar, schedule a post, best posting time, or pick one of the proposed slots.\n   - report: performance, numbers, best or worst post, comparisons.\n   - other: clear message that is not a work request (greeting, thanks, \"what can you do?\").\n   - fallback: unclear, incomplete or meaningless message (e.g. \"بدي إشي\", random letters).\n   A message can contain more than one task (e.g. \"اكتبلي بوست وجدوله الخميس\" = content + schedule).\n\n4. DECIDE which agents are needed, and in which order.\n   - other: no agent. Answer yourself in 1-2 short, friendly lines and mention what you can help with (writing posts, the posting calendar, performance reports).\n   - fallback: no agent. Do NOT guess. Ask ONE short clarifying question with options, e.g. \"ما فهمت عليك 🙏 بدك أكتبلك بوست، أعرضلك جدول النشر، ولا أحللك الأداء؟\"\n\n5. DELEGATE the tasks.\n   - Pass the owner's request WORD FOR WORD. Never change their intent or add requirements they did not ask for.\n   - Add context ONLY when the agent needs it: when editing, include the full text of the last post; when scheduling, include the full post text and platform.\n   - SCHEDULING: send the scheduling request to calendar_agent directly. Do NOT ask the owner \"are you sure?\" in chat: the system sends an approve/decline button before anything is saved.\n   - For multiple tasks, call the agents in order and pass the result of the first to the next (e.g. the new post from content_agent goes to calendar_agent).\n\n6. RECEIVE the results from the agents.\n\n7. REVIEW the results before answering. Check that:\n   - the result answers what the owner actually asked (right product, right platform, right action);\n   - nothing is missing (if the owner asked for two things, both are done);\n   - the agent did not report missing information or an error. If it did, tell the owner exactly what is missing; do not fill the gap yourself;\n   - a post is presented as scheduled ONLY if calendar_agent confirmed it was approved and added; if the owner declined, say clearly that nothing was saved.\n   If a result clearly does not match the request, call the agent ONE more time with a clear correction. Never fix post text, prices, dates or numbers yourself.\n\n8. DELIVER one final answer.\n   - Combine the results in a clear order. Keep the agents' post text, prices, dates and numbers EXACTLY as they wrote them.\n   - End with ONE short follow-up question that fits, unless an agent already asked one:\n     * after a post: \"بدك أعدّل إشي أو أجدوله؟\"\n     * after scheduling: \"بدك أجدول إشي ثاني؟\"\n     * after a report: \"بدك تفاصيل أكثر أو أكتبلك بوست من نفس النوع؟\"\n\n## Hard rules\n- Never write marketing content, calculate numbers or change the calendar yourself. Always delegate.\n- Never invent products, prices, offers, dates, locations or performance numbers.\n- Reply in the language given at the top of the message (Levantine Arabic by default).\n- Telegram format: short, plain text, no markdown headings or tables.",
+          "maxIterations": 8
+        }
+      },
+      "id": "e18aea59-469d-4b50-8f79-0de1154b9e3b",
+      "name": "Orchestrator",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1664,
+        -224
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Prepare Message').item.json.chat_id }}",
+        "contextWindowLength": 10
+      },
+      "id": "40819612-d009-4fe6-a340-d2b651c73e68",
+      "name": "Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        1536,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Content writer of the café. Writes and edits marketing posts and captions (Instagram, Facebook, X, WhatsApp) and answers questions about café products, prices and offers using the café knowledge base. Input: the owner's request word for word, plus the previous post text when editing.",
+        "text": "={{ $fromAI('request', 'The owner request copied word for word. When editing, also include the full text of the previous post.', 'string') }}\n\n[Answer language: {{ $('Prepare Message').item.json.reply_language === 'en' ? 'ENGLISH. Write the post and every word of your answer in English. The knowledge base is in Arabic: translate the facts, keep prices and dates exactly, keep the hashtags #BenAlSabah and #بن_الصباح.' : 'ARABIC, Jordanian/Palestinian Levantine dialect (هاد، هلأ، كتير). Never use Lebanese-only words like هيدا / هيدي.' }}]",
+        "options": {
+          "systemMessage": "=You are the Content Agent of the Ben Al-Sabah (بن الصباح) café marketing team.\nYou write and edit social media posts for the café owner.\n\nToday's date: {{ $now.toFormat('yyyy-MM-dd (cccc)') }}\n\n## Your tool\n- cafe_knowledge: searches the café knowledge base (brand guide, tone of voice, products and prices, current offers, platform rules, forbidden words). It returns the few chunks closest to your query, so SHORT, FOCUSED queries work best.\n\n## How to work\n1. Before writing, call cafe_knowledge SEPARATELY for each topic, with a short query each time:\n   a) the product only, by its exact name (e.g. \"Cold Brew\", \"Spanish Latte price\");\n   b) the target platform rules (e.g. \"Instagram rules\");\n   c) offers related to the product (e.g. \"Cold Brew offer\");\n   d) tone of voice and forbidden words (e.g. \"tone of voice forbidden words\").\n   Never combine all topics into one long query.\n2. If a search did not return what you need, search again with a different short query (e.g. the product name in Arabic or English) BEFORE deciding the information is missing.\n3. Identify the target platform (Instagram, Facebook, X or WhatsApp). If not specified, write for Instagram and say so.\n4. Write in the brand tone of voice and follow the platform rules exactly (length, hashtags, emojis, call to action).\n5. EDIT requests: the request contains the previous post. Edit THAT post as asked; do not write a new one.\n6. Questions about a product, price or offer: answer briefly using cafe_knowledge only.\n7. Keep the post focused on the requested topic. Mention an offer only if it is relevant to the product or the owner asked for it.\n\n## Hard rules (never break)\n- NEVER invent anything that is not in cafe_knowledge: products, prices, offers, discounts, dates, opening hours, numbers, city or location, or features (e.g. do not say the Wi-Fi is fast if the knowledge base only says it is free). This includes hashtags: do not add city or country hashtags.\n- Only say information is missing after at least two different searches for it. Then say clearly which information is missing. Do NOT write the post with guessed information.\n- Every price must match the knowledge base exactly.\n- When you mention an offer, include its end date. Never use an offer whose end date is before today, and if its start date is after today, say when it starts.\n- Never use any forbidden word or phrase from the knowledge base.\n- No health or medical claims about coffee, no comparisons with other cafés.\n- Address the reader in one consistent gender form (masculine general address in Arabic).\n\n## Output format (plain text for Telegram, no markdown headings)\n📱 المنصة: <platform>\n\n<the post text, ready to copy>\n\nFor short answers (a price question, missing info) reply in 1-3 lines.\n\n## Language\nSame language and dialect as the request (Levantine Arabic by default). Keep product names in English as written in the knowledge base.",
+          "maxIterations": 6
+        }
+      },
+      "id": "8b5a9f1d-8726-4007-a0c7-193c0273219c",
+      "name": "content_agent",
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        1664,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Prepare Message').item.json.chat_id }}",
+        "text": "={{ $json.output.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 4000) }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "147329bd-e8d0-4a3c-b9a9-bf570c8a7fab",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2160,
+        -80
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Connect your telegramApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "cachedResultName": "gpt-5-mini",
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "reasoningEffort": "low"
+        }
+      },
+      "id": "4e89bd98-e9ab-4125-9d75-4be1ad2ecc68",
+      "name": "OpenAI - Orchestrator",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1408,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "cachedResultName": "gpt-5-mini",
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "reasoningEffort": "low"
+        }
+      },
+      "id": "df97a269-39b2-4a9e-85c8-402d4ebc0228",
+      "name": "OpenAI - Content",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1648,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "cachedResultName": "gpt-5-mini",
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "reasoningEffort": "low"
+        }
+      },
+      "id": "1ec5482c-b107-4e8d-9a12-54ed669e6870",
+      "name": "OpenAI - Calendar",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2064,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "cachedResultName": "gpt-5-mini",
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "reasoningEffort": "low"
+        }
+      },
+      "id": "1d961b50-2622-4215-bdb7-a89d7f912407",
+      "name": "OpenAI - Analyst",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2864,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Calendar manager of the café (Google Sheets content_calendar). Shows the posting calendar, suggests best times, checks conflicts, and schedules a post. Saving a post triggers an approve/decline button for the owner, so you do NOT need to ask the owner for confirmation in chat. Input: the owner's request word for word, plus the full post text and platform when scheduling.",
+        "text": "={{ $fromAI('request', 'The owner request copied word for word. When scheduling a new post, also include the full post text and platform.', 'string') }}\n\n[Answer language: {{ $('Prepare Message').item.json.reply_language === 'en' ? 'ENGLISH. Write every word of your answer in English.' : 'ARABIC, Jordanian/Palestinian Levantine dialect (هاد، هلأ). Never use Lebanese-only words like هيدا.' }}]",
+        "options": {
+          "systemMessage": "=You are the Calendar Agent of the Ben Al-Sabah (بن الصباح) café marketing team.\nYou manage the posting calendar stored in Google Sheets (sheet: content_calendar). \"Scheduling\" means adding a row to this sheet; you do not publish anything on social media.\n\nNow: {{ $now.toFormat('cccc yyyy-MM-dd HH:mm') }} (Asia/Amman)\n\n## Your tools\n- get_schedule: reads content_calendar (post_id, date, time, platform, caption, status, created_by).\n- get_best_times: reads best_times (platform, day, best_time, why).\n- check_conflict: checks a slot. Pass date, time, platform and schedule_json = the rows from get_schedule as a JSON string.\n- add_to_calendar: adds ONE post to content_calendar. It is protected by a human approval step: when you call it, the system sends the owner an approve/decline request and waits. The tool result tells you what happened.\n\n## A) Viewing the calendar (\"شو منزلين هالأسبوع؟\")\n1. Call get_schedule.\n2. Keep only the period asked (\"this week\" = today until the end of the week; \"today\", \"tomorrow\", a specific day...). Ignore cancelled posts unless asked.\n3. List posts sorted by date and time: day, date, time, platform, first line of caption, status.\n4. If nothing is in that period, say so clearly.\n\n## B) Scheduling a post (\"جدولي البوست يوم الخميس الساعة 7\")\n1. IDENTIFY the post: the request must contain the post text and platform. If it does not, ask which post. Do not call add_to_calendar.\n2. DATE/TIME: convert relative dates (\"الخميس\", \"بكرا\") to YYYY-MM-DD using \"Now\" above (the next occurrence of that day). A time like \"7\" without am/pm means 19:00; say that you assumed evening. If no time is given, call get_best_times and use the best time for that platform and day, and mention its reason.\n3. CHECK: call get_schedule, then check_conflict.\n4. If is_past = true or slot_taken = true: do NOT call add_to_calendar. Explain the problem (which post uses the slot, or that it is in the past) and propose 2-3 free slots (prefer best_times). Ask the owner to choose one.\n5. If the slot is valid: call add_to_calendar ONCE (post_id = next number after the highest existing P- id, full caption, platform, date, time). The owner will approve or decline it with a button.\n6. Report the result from the tool. Read it carefully, there are THREE different cases:\n   - APPROVED and saved: \"✅ انضاف للجدول\" + post_id, platform, day, date, time.\n   - DECLINED by the owner (or no answer in time): say the owner declined, nothing was saved, and ask if they want another time.\n   - ERROR (the result contains \"error\", \"Bad request\" or similar): say a technical problem stopped the approval request, nothing was saved, and the owner can try again. NEVER describe an error as the owner declining.\n\n## C) Moving, editing or cancelling an existing post\n- Find it with get_schedule.\n- If status is \"published\": refuse. A published post cannot be edited, moved or cancelled.\n- Otherwise explain that changing or deleting an existing row is not available yet; the owner can edit it in the sheet, or you can schedule it again in a new slot.\n\n## Hard rules\n- Never say a post is scheduled unless add_to_calendar returned an approved, successful result.\n- Never call add_to_calendar for a slot that check_conflict marked as past or taken.\n- Never call add_to_calendar more than once per request.\n- Never invent posts, dates, times or best times.\n- Reply in the language requested at the end of the request. Short plain text for Telegram, no markdown headings or tables.",
+          "maxIterations": 8
+        }
+      },
+      "id": "de379808-f413-47d8-a298-833def5535d9",
+      "name": "calendar_agent",
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        2240,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Performance analyst of the café. Answers questions about how past posts performed (reach, clicks, likes, orders from post), compares posts and platforms, and finds the best or worst posts, using only the campaign_metrics data. Input: the owner's question word for word.",
+        "text": "={{ $fromAI('request', 'The owner question copied word for word, including any period, platform or metric they mentioned.', 'string') }}\n\n[Answer language: {{ $('Prepare Message').item.json.reply_language === 'en' ? 'ENGLISH. Write every word of your answer in English.' : 'ARABIC, Jordanian/Palestinian Levantine dialect (هاد، هلأ). Never use Lebanese-only words like هيدا.' }}]",
+        "options": {
+          "systemMessage": "=You are the Analyst Agent of the Ben Al-Sabah (بن الصباح) café marketing team.\nYou analyse the performance of the café's social media posts.\n\nToday: {{ $now.toFormat('yyyy-MM-dd (cccc)') }}\n\n## Your tools\n- get_metrics: reads the campaign_metrics sheet (post_id, date, platform, topic, reach, clicks, likes, orders_from_post).\n- calculator: use it for EVERY calculation (sums, averages, percentages, rates, differences), even simple ones.\nUse only the tools you actually have. If a tool you need is missing, say what you cannot do yet.\n\n## How to work\n1. ALWAYS call get_metrics first. Never answer from memory.\n2. Filter the rows by what the owner asked (period, platform, topic). \"This week\" / \"this month\" are relative to today.\n3. Use the calculator for every number you compute. Standard formulas:\n   - Engagement rate = (likes + clicks) / reach × 100\n   - Click-through rate (CTR) = clicks / reach × 100\n   - Conversion rate = orders_from_post / clicks × 100\n   Say which formula you used.\n4. Answer the question directly first (e.g. which post brought the most orders), then give 1-3 short insights or recommendations based ONLY on the data.\n5. Always mention which posts (post_id, platform, date, topic) your answer is based on.\n\n## Hard rules\n- NEVER invent, estimate or round up numbers. Every number must come from the sheet or from the calculator.\n- If there are no rows, or not enough rows to answer, say clearly: \"ما في بيانات كافية\" and explain what is missing.\n- If a value is 0 or empty, do not divide by it; say the rate cannot be calculated.\n- Do not give advice that is not supported by the data.\n- Reply in the same language and dialect as the request (Levantine Arabic by default). Short, plain text for Telegram, no markdown tables.",
+          "maxIterations": 10
+        }
+      },
+      "id": "8e63c13d-2817-4b04-857a-8d4557749409",
+      "name": "analyst_agent",
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        2912,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Reads all rows of the content_calendar sheet: post_id, date (YYYY-MM-DD), time (HH:mm), platform, caption, status (scheduled / published / cancelled), created_by.",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "content_calendar"
+        },
+        "options": {}
+      },
+      "id": "f0cbf200-0b4a-4286-97b4-5e2f481e37d9",
+      "name": "get_schedule",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        2192,
+        224
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Connect your googleSheetsOAuth2Api credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Reads the best_times sheet: platform, day (English weekday), best_time (HH:mm), why.",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "best_times"
+        },
+        "options": {}
+      },
+      "id": "7f373fb1-cef0-4899-99bb-1bd33bf899b5",
+      "name": "get_best_times",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        2320,
+        224
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Connect your googleSheetsOAuth2Api credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Checks if a proposed posting slot is valid. Input: date (YYYY-MM-DD), time (HH:mm, 24h), platform, and schedule_json (the JSON array of rows returned by get_schedule). Returns whether the slot is in the past and whether another non-cancelled post already uses the same platform, date and time.",
+        "jsCode": "const input = typeof query === 'string' ? JSON.parse(query) : query;\nconst date = String(input.date || '').trim();\nconst time = String(input.time || '').trim();\nconst platform = String(input.platform || '').trim().toLowerCase();\nlet rows = [];\ntry {\n  rows = typeof input.schedule_json === 'string' ? JSON.parse(input.schedule_json) : (input.schedule_json || []);\n} catch (e) {\n  return JSON.stringify({ ok: false, error: 'schedule_json is not valid JSON' });\n}\nif (!Array.isArray(rows)) rows = [];\n\nconst slot = DateTime.fromISO(date + 'T' + time, { zone: 'Asia/Amman' });\nif (!slot.isValid) {\n  return JSON.stringify({ ok: false, error: 'Invalid date or time. Use YYYY-MM-DD and HH:mm (24h).' });\n}\nconst now = DateTime.now().setZone('Asia/Amman');\nconst isPast = slot < now;\n\nconst conflicts = rows.filter(r => {\n  const status = String(r.status || '').toLowerCase();\n  if (status === 'cancelled' || status === 'canceled') return false;\n  return String(r.date || '').trim() === date\n    && String(r.time || '').trim() === time\n    && String(r.platform || '').trim().toLowerCase() === platform;\n});\n\nreturn JSON.stringify({\n  ok: !isPast && conflicts.length === 0,\n  now: now.toFormat('yyyy-MM-dd HH:mm'),\n  slot: slot.toFormat('cccc yyyy-MM-dd HH:mm'),\n  is_past: isPast,\n  slot_taken: conflicts.length > 0,\n  conflicting_posts: conflicts.map(r => ({ post_id: r.post_id, caption: r.caption })),\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"date\":{\"type\":\"string\",\"description\":\"Proposed date YYYY-MM-DD\"},\"time\":{\"type\":\"string\",\"description\":\"Proposed time HH:mm (24h)\"},\"platform\":{\"type\":\"string\",\"description\":\"Instagram, Facebook, X or WhatsApp\"},\"schedule_json\":{\"type\":\"string\",\"description\":\"JSON array of content_calendar rows returned by get_schedule\"}},\"required\":[\"date\",\"time\",\"platform\",\"schedule_json\"]}"
+      },
+      "id": "d5b1bbc2-04b7-4794-a0d0-72450fb9f717",
+      "name": "check_conflict",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        2448,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Adds ONE approved post to the content_calendar sheet with status 'scheduled'. Use ONLY after the owner explicitly approved this exact slot.",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "content_calendar"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "post_id",
+              "id": "post_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "date",
+              "id": "date",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "time",
+              "id": "time",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "platform",
+              "id": "platform",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "caption",
+              "id": "caption",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "status",
+              "id": "status",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "created_by",
+              "id": "created_by",
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "value": {
+            "caption": "={{ $fromAI('caption', 'The full post text to publish', 'string') }}",
+            "created_by": "AI",
+            "date": "={{ $fromAI('date', 'Approved date YYYY-MM-DD', 'string') }}",
+            "platform": "={{ $fromAI('platform', 'Instagram, Facebook, X or WhatsApp', 'string') }}",
+            "post_id": "={{ $fromAI('post_id', 'New unique id: P- followed by the next number after the highest existing post_id, e.g. P-006', 'string') }}",
+            "status": "scheduled",
+            "time": "={{ $fromAI('time', 'Approved time HH:mm (24h)', 'string') }}"
+          }
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "id": "f3816005-e626-4ef6-808a-f63cae33777a",
+      "name": "add_to_calendar",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        2656,
+        432
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Connect your googleSheetsOAuth2Api credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Reads the campaign_metrics sheet: post_id, date, platform, topic, reach, clicks, likes, orders_from_post.",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Ben Al-Sabah Marketing"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "campaign_metrics"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        2992,
+        224
+      ],
+      "id": "4b323d06-80fb-4770-8402-b4344ae8e822",
+      "name": "get_metrics",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Connect your googleSheetsOAuth2Api credential"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        3120,
+        224
+      ],
+      "id": "502c79dc-4276-4250-9e68-e7d904c49489",
+      "name": "calculator"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "id": "a6b8ccc5-dfc0-414b-a0f2-292ae4280ca5",
+      "name": "Get Voice File",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        -208
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Connect your telegramApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "speech",
+        "operation": "speechToText",
+        "additionalOptions": {
+          "model": "scribe_v1"
+        },
+        "requestOptions": {}
+      },
+      "id": "43cda497-dcf7-4d11-ac8d-eb7baa6418c4",
+      "name": "Transcribe Voice",
+      "type": "@elevenlabs/n8n-nodes-elevenlabs.elevenLabs",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -208
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "elevenLabsApi": {
+          "id": "",
+          "name": "Connect your elevenLabsApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "isvoice1",
+              "leftValue": "={{ $('Prepare Message').item.json.is_voice }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "9cff39a7-d079-4d4f-af8a-207320da181b",
+      "name": "Is Voice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1936,
+        -176
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "speech",
+        "voice": {
+          "__rl": true,
+          "cachedResultName": "Sarah",
+          "mode": "id",
+          "value": "EXAVITQu4vr4xnSDxMaL"
+        },
+        "text": "={{ $('Orchestrator').item.json.output.replace(/#[^\\s#]+/g, '').replace(/\\p{Extended_Pictographic}|️/gu, '').replace(/\\n{2,}/g, '\\n').trim().slice(0, 2000) }}",
+        "additionalOptions": {
+          "model": {
+            "__rl": true,
+            "mode": "id",
+            "value": "eleven_flash_v2_5"
+          },
+          "outputFormat": "mp3_44100_128",
+          "languageCode": "={{ $('Prepare Message').item.json.reply_language }}"
+        },
+        "requestOptions": {}
+      },
+      "id": "b36b2373-d264-4179-a018-32003d712a79",
+      "name": "Text to Speech",
+      "type": "@elevenlabs/n8n-nodes-elevenlabs.elevenLabs",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        -272
+      ],
+      "credentials": {
+        "elevenLabsApi": {
+          "id": "",
+          "name": "Connect your elevenLabsApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAudio",
+        "chatId": "={{ $('Prepare Message').item.json.chat_id }}",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "={{ $('Is Voice?').item.json.output }}",
+          "fileName": "ben-al-sabah-reply.mp3",
+          "performer": "Ben Al-Sabah",
+          "title": "بن الصباح 🎙️"
+        }
+      },
+      "id": "875920ee-0fc2-4302-bcbd-298172163264",
+      "name": "Send Voice Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2384,
+        -272
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Connect your telegramApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# ☕ AI Marketing Team — بن الصباح\nبوت Telegram بيشتغل كـفريق تسويق لمقهى: بيكتب بوستات من قاعدة معرفة (RAG)، بيدير جدول النشر بموافقة صاحب المقهى، وبيحلل الأداء. بيفهم نص وفويس، عربي وإنجليزي.\n\n---\n## 🗺️ كيف بيمشي\n**1. البوابة:** Telegram Trigger ← **Allowlist** (صاحب المقهى بس، غيره Send Refusal)\n**2. نوع الرسالة:** Input Type (Switch) ← text / voice / callback / other\n • voice ← Get Voice File ← **Transcribe Voice** (ElevenLabs Scribe، بيكتشف اللغة)\n**3. توحيد:** Prepare Message ← chat_id, user_text, user_name, is_voice, **reply_language**\n**4. العقل:** **Orchestrator** (gpt-5-mini + Memory بـ chat_id) بيفهم، بيصنّف (content / schedule / report / other / fallback)، بيوزّع، بيراجع، وبيرد\n • **content_agent** ← cafe_knowledge (Pinecone + Gemini Embeddings)\n • **calendar_agent** ← get_schedule · get_best_times · check_conflict · 🔒 Calendar Approval ← add_to_calendar\n • **analyst_agent** ← get_metrics · calculator\n**5. الرد:** Is Voice? ← فويس: Text to Speech (ElevenLabs) ← Send Voice Reply / نص: Send Reply (HTML)\n**6. قاعدة المعرفة (trigger منفصل):** Form (.md/.txt) ← Loader ← Splitter 700/80 ← Gemini Embeddings ← Pinecone\n\n**البيانات:** Google Sheet \"Ben Al-Sabah Marketing\" → content_calendar · best_times · campaign_metrics\n**الجدولة:** check_conflict ← add_to_calendar ← 🔒 n8n بيوقف التنفيذ وبيبعت لصاحب المقهى زر موافق/رفض ← بس بعد الموافقة بينكتب السطر. **الموافقة بالكود، مش بالبرومبت.**\n\n---\n## 🧠 قرارات التصميم (وليش)\n• **Orchestrator بدل Router:** بيقدر ينفّذ طلبين برسالة وحدة ويراجع النتائج. الثمن: طلبات LLM أكثر وتحكم أقل.\n• **Human-in-the-loop بـ node مش ببرومبت:** الموديل مستحيل يحفظ بدون ما صاحب المقهى يضغط موافق.\n• **اللغة بتنحسب بالكود:** reply_language بيتمرر إجبارياً لكل Agent.\n• **Embeddings = Gemini والـ Chat = OpenAI:** الـ index انبنى على Gemini (3072). تغييره = index جديد + رفع من جديد.\n• **الرد بنفس شكل السؤال:** فويس → فويس، نص → نص.\n\n---\n## ⚠️ أخطاء صارت — لا تكرريها\n1. **Execute step ≠ Execute workflow:** الأول بيشغّل الـ node لحاله. الملفات وصلت للفورم وما وصلت Pinecone.\n2. **أبعاد الـ Index:** Pinecone عمل index بـ llama 1024 افتراضياً. لازم Dense + نفس أبعاد موديل الـ Embeddings.\n3. **`==` بأول الـ expression:** الـ `=` الثانية صارت نص → الـ Allowlist رفض صاحبة البوت. شوفي الـ preview دايماً.\n4. **مقارنة قيمة بنفسها:** chat.id = from.id بالمحادثة الخاصة → الشرط دايماً true. قارني بـ **قيمة ثابتة**.\n5. **أنواع بيانات مختلطة:** Number مع String equals + Strict = خطأ. وحّدي النوع.\n6. **اسم الأداة ≠ الاسم بالبرومبت:** اسم الـ node = اسم الأداة اللي بيشوفه الموديل (get_metrics).\n7. **بحث RAG طويل ومخلوط:** رجّع قواعد بدل السعر. **بحث قصير لكل موضوع.**\n8. **حد الرصيد المجاني:** Gemini المجاني 5 طلبات/دقيقة، ورسالة وحدة بتستهلك ~5 (429).\n9. **اللغة مقفولة على ar:** الإنجليزي انرد عليه عربي. الموديل بيتبع لغة قاعدة المعرفة.\n10. **Telegram Markdown:** `_` بالهاشتاق كسرت الرسالة. الحل: HTML + escape، أو escape لـ `_ * [ `` لما ما في خيار HTML (زي رسالة الموافقة).\n11. **الموديل من القائمة بـ ElevenLabs STT** بعت `[object Object]`. اكتبي الاسم نص: scribe_v1.\n12. **خطأ تقني انفهم كـ \"رفض\":** الـ Agent قال \"المالك رفض\" وهو فعلياً error. علّمي الـ Agent يميّز: approved / declined / error.\n\n---\n## 📚 قواعد عامة\n• **IF** لسؤال نعم/لا — **Switch** لـ 3 حالات أو أكثر.\n• **Fail early:** الصلاحيات أول شي قبل أي شغل أو صرف.\n• أي ضغطة زر لازم **Answer Query** وإلا الزر بيضل معلّق.\n• اللي لازم يكون صح 100% (لغة، تاريخ، صلاحيات، موافقة، تعارض) → **كود/node**. الفهم والكتابة → **موديل**.\n• اختبري من **حساب غريب** مش بس حسابك.\n• أسماء nodes واضحة + Rename Output بالـ Switch.\n• Memory دايماً بـ key = chat_id.\n• بعد أي تعديل: **Publish مرة ثانية**، غير هيك البوت شغال على النسخة القديمة.\n\n",
+        "height": 1072,
+        "width": 1080,
+        "color": 4
+      },
+      "id": "7bc34a87-ca6e-4d5a-87f6-114a09ff6cad",
+      "name": "📘 Project Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1184,
+        -416
+      ]
+    },
+    {
+      "parameters": {
+        "message": "={{ ('📅 طلب إضافة بوست للجدول / Schedule request\\n\\n📱 ' + ($tool.parameters.platform || '') + '\\n🗓️ ' + ($tool.parameters.date || '') + '  ⏰ ' + ($tool.parameters.time || '') + '\\n🆔 ' + ($tool.parameters.post_id || '') + '\\n\\n' + String($tool.parameters.caption || '').slice(0, 600)).replace(/([_*`\\[])/g, '\\\\$1') }}",
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "✅ موافق / Approve",
+            "disapproveLabel": "❌ رفض / Decline"
+          }
+        },
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 30,
+              "resumeUnit": "minutes"
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "de3db7e0-c9e3-472d-a38c-b2958febaee3",
+      "name": "Calendar Approval",
+      "type": "n8n-nodes-base.telegramHitlTool",
+      "typeVersion": 1.2,
+      "position": [
+        2576,
+        224
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Connect your telegramApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Input Type').item.json.message.chat.id }}",
+        "text": "صار خلل تقني مؤقت 🙏 جرّب ابعت طلبك كمان مرة بعد دقيقة.\nA temporary technical problem happened. Please try again in a minute.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "7b2c2c32-8230-47dd-a856-7a659fb2712f",
+      "name": "Send Error Notice",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2112,
+        192
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Connect your telegramApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "02458565-f099-4b29-bf50-ed71b2a308e7",
+      "name": "On Workflow Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "={{ '⚠️ Marketing bot error\\nNode: ' + ($json.execution?.lastNodeExecuted || '-') + '\\nError: ' + String($json.execution?.error?.message || '-').slice(0, 300) + '\\nExecution: ' + ($json.execution?.id || '-') }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "a2c813ba-101c-4ab2-8d44-1417a1fe2d59",
+      "name": "Alert Owner",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        640
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Connect your telegramApi credential"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Upload Knowledge Form": {
+      "main": [
+        [
+          {
+            "node": "Pinecone - Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone - Insert",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone - Insert",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Allowlist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowlist": {
+      "main": [
+        [
+          {
+            "node": "Input Type",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Refusal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Type": {
+      "main": [
+        [
+          {
+            "node": "Prepare Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Voice File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Unsupported",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Gemini Embeddings - Search": {
+      "ai_embedding": [
+        [
+          {
+            "node": "cafe_knowledge",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Message": {
+      "main": [
+        [
+          {
+            "node": "Orchestrator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Orchestrator",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "content_agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cafe_knowledge": {
+      "ai_tool": [
+        [
+          {
+            "node": "content_agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Orchestrator": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Orchestrator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Content": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "content_agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Calendar": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "calendar_agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Analyst": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "analyst_agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calendar_agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyst_agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_schedule": {
+      "ai_tool": [
+        [
+          {
+            "node": "calendar_agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_best_times": {
+      "ai_tool": [
+        [
+          {
+            "node": "calendar_agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check_conflict": {
+      "ai_tool": [
+        [
+          {
+            "node": "calendar_agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_metrics": {
+      "ai_tool": [
+        [
+          {
+            "node": "analyst_agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "analyst_agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Voice File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Voice": {
+      "main": [
+        [
+          {
+            "node": "Prepare Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Notice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Voice?": {
+      "main": [
+        [
+          {
+            "node": "Text to Speech",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text to Speech": {
+      "main": [
+        [
+          {
+            "node": "Send Voice Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestrator": {
+      "main": [
+        [
+          {
+            "node": "Is Voice?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Notice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "add_to_calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "Calendar Approval",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar Approval": {
+      "ai_tool": [
+        [
+          {
+            "node": "calendar_agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On Workflow Error": {
+      "main": [
+        [
+          {
+            "node": "Alert Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jerusalem"
+  },
+  "pinData": {}
+}
